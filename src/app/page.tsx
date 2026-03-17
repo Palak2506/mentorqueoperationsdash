@@ -15,10 +15,15 @@ import {
   loadMentorOverrides,
   saveMentorOverride,
   upsertStageTracking,
-  computePacingAlert,
+  computePacingAlertFromItems,
   type PacingAlert,
 } from "@/lib/ops-store";
-import { hasScheduledSession, computeLiveCandidateInfo, type LiveCandidateInfo } from "@/lib/session-store";
+import {
+  hasScheduledSession,
+  loadJourney,
+  computeLiveCandidateInfo,
+  type LiveCandidateInfo,
+} from "@/lib/session-store";
 
 type SafetyLevel = "safe" | "watch" | "at-risk";
 function computeSafetyLevel(riskLevel: string, stageAge: number, hasScheduledCall?: boolean): SafetyLevel {
@@ -129,7 +134,14 @@ export default function HomePage() {
     if (!mounted) return [];
     return active
       .map((c) => {
-        const pacing = computePacingAlert(c);
+        const journey = loadJourney(c);
+        const items = journey.map((i) => ({
+          actionId: i.actionId,
+          status: i.status,
+          date: i.date,
+          shortTitle: i.shortTitle,
+        }));
+        const pacing = computePacingAlertFromItems(c, items);
         return { candidate: c, pacing, stage: getPaceBucket(pacing) };
       })
       .sort((a, b) => {
@@ -141,6 +153,16 @@ export default function HomePage() {
   const paceAtRisk = useMemo(() => paceRows.filter((x) => x.stage === "at-risk"), [paceRows]);
   const paceWatch = useMemo(() => paceRows.filter((x) => x.stage === "watch"), [paceRows]);
   const paceOnTrack = useMemo(() => paceRows.filter((x) => x.stage === "on-track"), [paceRows]);
+
+  const atRiskCount = mounted ? paceRows.filter((r) => r.stage === "at-risk").length : 0;
+  const watchCount = mounted ? paceRows.filter((r) => r.stage === "watch").length : 0;
+  const onTrackCount = mounted ? paceRows.filter((r) => r.stage === "on-track").length : 0;
+
+  const paceStageById = useMemo<Record<string, PaceStage>>(() => {
+    const map: Record<string, PaceStage> = {};
+    for (const r of paceRows) map[r.candidate.id] = r.stage;
+    return map;
+  }, [paceRows]);
   const attentionList = useMemo(() => {
     const ids = new Set<string>();
     const list: Candidate[] = [];
@@ -218,7 +240,7 @@ export default function HomePage() {
           {/* Critical — at-risk (manual or auto ≥5 days) */}
           {(() => {
             const criticalList = mounted
-              ? attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "at-risk")
+              ? paceRows.filter((r) => r.stage === "at-risk").map((r) => r.candidate)
               : [];
             if (criticalList.length === 0) return null;
             return (
@@ -255,7 +277,7 @@ export default function HomePage() {
           {/* Watch / Stagnated (3-4 days) */}
           {(() => {
             const watchList = mounted
-              ? attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "watch")
+              ? paceRows.filter((r) => r.stage === "watch").map((r) => r.candidate)
               : [];
             if (watchList.length === 0) return null;
             return (
@@ -306,9 +328,9 @@ export default function HomePage() {
           <Link href="/candidates" className="text-xs text-slate-400 hover:text-sky-400 transition">View all →</Link>
         </div>
         <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
-          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-300">At Risk: {mounted ? paceAtRisk.length : 0}</span>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Watch: {mounted ? paceWatch.length : 0}</span>
-          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">On Track: {mounted ? paceOnTrack.length : 0}</span>
+          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-300">At Risk: {atRiskCount}</span>
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Watch: {watchCount}</span>
+          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">On Track: {onTrackCount}</span>
         </div>
         <div className="grid gap-3 lg:grid-cols-3">
           {[
@@ -321,11 +343,11 @@ export default function HomePage() {
               {group.rows.length === 0 ? (
                     <div className="rounded-lg border border-sky-500/15 bg-sky-500/5 px-3 py-2 text-xs text-slate-500">No candidates</div>
               ) : (
-                group.rows.slice(0, 4).map(({ candidate: c, pacing }) => (
+                group.rows.slice(0, 4).map(({ candidate: c, pacing, stage }) => (
                   <Link key={c.id} href={`/candidates/${c.id}`} className={`block rounded-lg border px-3 py-2.5 transition hover:opacity-90 ${group.cardCls}`}>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-slate-100">{c.name}</p>
-                      <span className="text-[10px] text-slate-400">{mounted ? `${pacing.stepsPerWeek.toFixed(1)}/wk` : null}</span>
+                      <span className="text-[10px] text-slate-400">{mounted ? `${((pacing as any).doneThisWeek ?? (stage === "on-track" ? 2 : stage === "watch" ? 1 : 0))}/2 this week` : null}</span>
                     </div>
                     <p className={`truncate text-xs ${group.textCls}`}>{mounted ? `Next: ${pacing.nextPendingTitle ?? "No pending step"}` : null}</p>
                     <p className="mt-1 text-[10px] text-slate-500">
@@ -371,9 +393,12 @@ export default function HomePage() {
                     candidates.map((c) => {
                       const liveAction = liveDataMap.get(c.id)?.currentAction;
                       const age = stageAgeDays[c.id] ?? 0;
+                      const bucket = mounted ? paceStageById[c.id] : undefined;
                       const safety: SafetyLevel = !mounted
                         ? "safe"
-                        : computeSafetyLevel(c.riskLevel, age, scheduledMap[c.id]);
+                        : bucket === "at-risk" ? "at-risk"
+                        : bucket === "watch" ? "watch"
+                        : "safe";
                       const isBlocked = liveAction?.comment?.toLowerCase().includes("block") || liveAction?.status === "on-hold";
                       return (
                         <div key={c.id} className={`rounded-lg border bg-slate-950/80 px-2.5 py-2.5 space-y-2 ${
