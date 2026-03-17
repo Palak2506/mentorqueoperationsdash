@@ -126,6 +126,7 @@ export default function HomePage() {
 
   // Standalone pace tracker (all active candidates, grouped by pace stage)
   const paceRows = useMemo<Array<{ candidate: Candidate; pacing: PacingAlert; stage: PaceStage }>>(() => {
+    if (!mounted) return [];
     return active
       .map((c) => {
         const pacing = computePacingAlert(c);
@@ -136,7 +137,7 @@ export default function HomePage() {
         if (order[a.stage] !== order[b.stage]) return order[a.stage] - order[b.stage];
         return a.candidate.name.localeCompare(b.candidate.name);
       });
-  }, [active, journeyVersion]);
+  }, [active, journeyVersion, mounted]);
   const paceAtRisk = useMemo(() => paceRows.filter((x) => x.stage === "at-risk"), [paceRows]);
   const paceWatch = useMemo(() => paceRows.filter((x) => x.stage === "watch"), [paceRows]);
   const paceOnTrack = useMemo(() => paceRows.filter((x) => x.stage === "on-track"), [paceRows]);
@@ -154,11 +155,13 @@ export default function HomePage() {
     candidates: active.filter((c) => c.currentStageId === stage.id),
   })), [active]);
 
-  const today = new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const today = mounted
+    ? new Date().toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    : "";
 
   function handleCreateCandidate() {
     if (!newCandidateName.trim()) return;
@@ -200,7 +203,7 @@ export default function HomePage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-50">Operations Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{today}</p>
+          <p className="text-sm text-slate-500 mt-0.5">{mounted ? today : null}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowCreateCandidate(true)} className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition">+ Create candidate</button>
@@ -214,7 +217,9 @@ export default function HomePage() {
         <section className="space-y-2">
           {/* Critical — at-risk (manual or auto ≥5 days) */}
           {(() => {
-            const criticalList = attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "at-risk");
+            const criticalList = mounted
+              ? attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "at-risk")
+              : [];
             if (criticalList.length === 0) return null;
             return (
               <div className="rounded-xl border border-red-500/35 bg-red-500/5 p-4">
@@ -231,13 +236,13 @@ export default function HomePage() {
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <p className="text-sm font-bold text-slate-50">{c.name}</p>
                           <div className="flex gap-1">
-                            <RiskBadge level={c.riskLevel} />
+                            {mounted ? <RiskBadge level={c.riskLevel} /> : null}
                             {age >= 5 && c.riskLevel === "normal" && (
                               <span className="rounded-full bg-red-500/15 border border-red-500/30 px-2 py-0.5 text-[10px] font-semibold text-red-400">{age}d stuck</span>
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-red-300/80 truncate">{nextAction ? `↳ ${nextAction.shortTitle}` : "No pending action"}</p>
+                        <p className="text-xs text-red-300/80 truncate">{mounted ? (nextAction ? `↳ ${nextAction.shortTitle}` : "No pending action") : null}</p>
                         <p className="text-[10px] text-slate-500 mt-1">{c.role} · {c.mentor}</p>
                       </Link>
                     );
@@ -249,7 +254,9 @@ export default function HomePage() {
 
           {/* Watch / Stagnated (3-4 days) */}
           {(() => {
-            const watchList = attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "watch");
+            const watchList = mounted
+              ? attentionList.filter((c) => computeSafetyLevel(c.riskLevel, stageAgeDays[c.id] ?? 0, scheduledMap[c.id]) === "watch")
+              : [];
             if (watchList.length === 0) return null;
             return (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
@@ -266,11 +273,11 @@ export default function HomePage() {
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <p className="text-sm font-semibold text-slate-50">{c.name}</p>
                           <div className="flex gap-1">
-                            {c.riskLevel === "watch" && <RiskBadge level={c.riskLevel} />}
+                            {mounted && c.riskLevel === "watch" ? <RiskBadge level={c.riskLevel} /> : null}
                             {age >= 3 && <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">{age}d stuck</span>}
                           </div>
                         </div>
-                        <p className="text-xs text-amber-300/80 truncate">{nextAction ? `↳ ${nextAction.shortTitle}` : "No pending action"}</p>
+                        <p className="text-xs text-amber-300/80 truncate">{mounted ? (nextAction ? `↳ ${nextAction.shortTitle}` : "No pending action") : null}</p>
                         <p className="text-[10px] text-slate-500 mt-1">{c.role} · {c.mentor}</p>
                       </Link>
                     );
@@ -299,9 +306,9 @@ export default function HomePage() {
           <Link href="/candidates" className="text-xs text-slate-400 hover:text-sky-400 transition">View all →</Link>
         </div>
         <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
-          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-300">At Risk: {paceAtRisk.length}</span>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Watch: {paceWatch.length}</span>
-          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">On Track: {paceOnTrack.length}</span>
+          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-300">At Risk: {mounted ? paceAtRisk.length : 0}</span>
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Watch: {mounted ? paceWatch.length : 0}</span>
+          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">On Track: {mounted ? paceOnTrack.length : 0}</span>
         </div>
         <div className="grid gap-3 lg:grid-cols-3">
           {[
@@ -318,13 +325,15 @@ export default function HomePage() {
                   <Link key={c.id} href={`/candidates/${c.id}`} className={`block rounded-lg border px-3 py-2.5 transition hover:opacity-90 ${group.cardCls}`}>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-slate-100">{c.name}</p>
-                      <span className="text-[10px] text-slate-400">{pacing.stepsPerWeek.toFixed(1)}/wk</span>
+                      <span className="text-[10px] text-slate-400">{mounted ? `${pacing.stepsPerWeek.toFixed(1)}/wk` : null}</span>
                     </div>
-                    <p className={`truncate text-xs ${group.textCls}`}>Next: {pacing.nextPendingTitle ?? "No pending step"}</p>
+                    <p className={`truncate text-xs ${group.textCls}`}>{mounted ? `Next: ${pacing.nextPendingTitle ?? "No pending step"}` : null}</p>
                     <p className="mt-1 text-[10px] text-slate-500">
-                      {pacing.hasScheduledCall
-                        ? `Scheduled: ${pacing.nextScheduledTitle ?? "Next call"}${pacing.nextScheduledDate ? ` · ${pacing.nextScheduledDate}` : ""}`
-                        : "Next call not scheduled"}
+                      {mounted
+                        ? (pacing.hasScheduledCall
+                            ? `Scheduled: ${pacing.nextScheduledTitle ?? "Next call"}${pacing.nextScheduledDate ? ` · ${pacing.nextScheduledDate}` : ""}`
+                            : "Next call not scheduled")
+                        : null}
                     </p>
                   </Link>
                 ))
@@ -362,7 +371,9 @@ export default function HomePage() {
                     candidates.map((c) => {
                       const liveAction = liveDataMap.get(c.id)?.currentAction;
                       const age = stageAgeDays[c.id] ?? 0;
-                      const safety = computeSafetyLevel(c.riskLevel, age, scheduledMap[c.id]);
+                      const safety: SafetyLevel = !mounted
+                        ? "safe"
+                        : computeSafetyLevel(c.riskLevel, age, scheduledMap[c.id]);
                       const isBlocked = liveAction?.comment?.toLowerCase().includes("block") || liveAction?.status === "on-hold";
                       return (
                         <div key={c.id} className={`rounded-lg border bg-slate-950/80 px-2.5 py-2.5 space-y-2 ${
