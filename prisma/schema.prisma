@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Candidate {
+  id           String           @id @default(cuid())
+  name         String
+  role         String
+  mentor       String
+  currentStageId String
+  riskLevel    String           @default("normal")
+  isAlumni     Boolean          @default(false)
+  enrolledDate String
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  actions        CandidateAction[]
+  journeyItems   JourneyItem[]
+  mentorOverride MentorOverride?
+  note           CandidateNote?
+  calendarEvents CalendarEvent[]
+}
+
+model CandidateAction {
+  id         String   @id @default(cuid())
+  candidate  Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String
+  actionId   Int
+  status     String   @default("not-done")
+  date       String?
+  comment    String?
+}
+
+model JourneyItem {
+  id           String    @id @default(cuid())
+  candidate    Candidate @relation(fields: [candidateId], references: [id])
+  candidateId  String
+  instanceId   String    @unique
+  actionId     Int?
+  stageId      String?
+  shortTitle   String
+  title        String?
+  status       String    @default("not-done")
+  date         String?
+  comment      String?
+  poc          String?
+  duration     String?
+  isCustom     Boolean   @default(false)
+  orderIndex   Int
+}
+
+model MentorOverride {
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String    @id
+  mentorName  String
+}
+
+model CandidateNote {
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String    @id
+  content     String
+  updatedAt   DateTime  @updatedAt
+}
+
+model CalendarEvent {
+  instanceId    String   @id
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  candidateId   String
+  candidateName String
+  sessionTitle  String
+  date          String
+}

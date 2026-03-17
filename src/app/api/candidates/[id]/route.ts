@@ -1,0 +1,87 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(_request: Request, { params }: RouteParams) {
+  const { id } = params;
+
+  try {
+    const candidate = await prisma.candidate.findUnique({
+      where: { id },
+      include: {
+        journeyItems: {
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    if (!candidate) {
+      return NextResponse.json(
+        { error: 'Candidate not found' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(candidate);
+  } catch (error) {
+    console.error('Error fetching candidate', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch candidate' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  const { id } = params;
+
+  try {
+    const body = await request.json();
+    const { mentor, notes, riskLevel, currentStageId } = body ?? {};
+
+    const data: Record<string, unknown> = {};
+    if (mentor !== undefined) data.mentor = mentor;
+    if (notes !== undefined) data.notes = notes;
+    if (riskLevel !== undefined) data.riskLevel = riskLevel;
+    if (currentStageId !== undefined) data.currentStageId = currentStageId;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 },
+      );
+    }
+
+    const updated = await prisma.candidate.update({
+      where: { id },
+      data,
+      include: {
+        journeyItems: {
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error('Error updating candidate', error);
+
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: 'Candidate not found' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to update candidate' },
+      { status: 500 },
+    );
+  }
+}
+
