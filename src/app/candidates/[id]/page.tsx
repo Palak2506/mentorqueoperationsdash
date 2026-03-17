@@ -76,6 +76,9 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   const [editingNotes, setEditingNotes]     = useState(false);
   const [notesInput, setNotesInput]         = useState("");
   const [stageAge, setStageAge]             = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!id) {
@@ -169,13 +172,15 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   const hasBlockerAhead = !!immediateBlocker && immediateBlocker !== currentAct;
 
   // Reactive: use the same live pace logic as the dashboard/cards
-  const pacing = computePacingAlertFromItems(candidate, journey.map((i) => ({
-    actionId: i.actionId,
-    status: i.status,
-    date: i.date,
-    shortTitle: i.shortTitle,
-  })));
-  const paceBucket = getPaceBucket(pacing);
+  const pacing = mounted
+    ? computePacingAlertFromItems(candidate, journey.map((i) => ({
+        actionId: i.actionId,
+        status: i.status,
+        date: i.date,
+        shortTitle: i.shortTitle,
+      })))
+    : ({ needsScheduling: false, paceBelowTarget: false } as any);
+  const paceBucket = mounted ? getPaceBucket(pacing) : "on-track";
   const safetyLevel: SafetyLevel = paceBucket === "on-track" ? "safe" : paceBucket;
 
   const visibleJourney = hideDone ? journey.filter((i) => i.status !== "done") : journey;
@@ -334,7 +339,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl font-bold">{candidate.name}</h1>
-                  <RiskBadge level={candidate.riskLevel} />
+                  <RiskBadge level={safetyLevel === "safe" ? "normal" : safetyLevel} />
                 </div>
                 <p className="text-sm text-slate-400 mt-0.5">
                   {candidate.role}
