@@ -101,8 +101,55 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
 
   const weekMs = 7 * 24 * 60 * 60 * 1000;
 
-  // Live items (items[] parameter first; fallback to localStorage/seed)
-  const liveItems = items ?? loadLiveItems(candidate);
+  // Live items (items[] parameter first; fallback to localStorage/seed).
+  // Also detect if we fell back to seed data (no user-updated journey saved yet).
+  let usedSeedFallback = false;
+  let liveItems: PacingLiveItem[];
+  if (items) {
+    liveItems = items;
+  } else if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(JOURNEY_LS_KEY(candidate.id));
+      if (raw) {
+        const parsed = JSON.parse(raw) as PacingLiveItem[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          liveItems = parsed;
+        } else {
+          usedSeedFallback = true;
+          liveItems = candidate.actions.map((a) => ({
+            actionId: a.actionId,
+            status: a.status,
+            date: a.date,
+            shortTitle: JOURNEY_MAP.get(a.actionId)?.shortTitle,
+          }));
+        }
+      } else {
+        usedSeedFallback = true;
+        liveItems = candidate.actions.map((a) => ({
+          actionId: a.actionId,
+          status: a.status,
+          date: a.date,
+          shortTitle: JOURNEY_MAP.get(a.actionId)?.shortTitle,
+        }));
+      }
+    } catch {
+      usedSeedFallback = true;
+      liveItems = candidate.actions.map((a) => ({
+        actionId: a.actionId,
+        status: a.status,
+        date: a.date,
+        shortTitle: JOURNEY_MAP.get(a.actionId)?.shortTitle,
+      }));
+    }
+  } else {
+    usedSeedFallback = true;
+    liveItems = candidate.actions.map((a) => ({
+      actionId: a.actionId,
+      status: a.status,
+      date: a.date,
+      shortTitle: JOURNEY_MAP.get(a.actionId)?.shortTitle,
+    }));
+  }
 
   // Informational counts (do not drive banner)
   const applicable = liveItems.filter((i) => i.status !== "na");
@@ -164,18 +211,47 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
   let needsScheduling: boolean;
   let paceBelowTarget: boolean;
 
-  if (doneThisWeek === 0) {
-    level = "critical";
-    needsScheduling = true;
-    paceBelowTarget = true;
-  } else if (doneThisWeek === 1) {
+  if (doneThisWeek === 1) {
     level = "warning";
     needsScheduling = false;
     paceBelowTarget = true;
   } else {
-    level = "ok";
-    needsScheduling = false;
-    paceBelowTarget = false;
+    // doneThisWeek === 0 OR doneThisWeek >= 2
+    if (doneThisWeek >= 2) {
+      level = "ok";
+      needsScheduling = false;
+      paceBelowTarget = false;
+    } else {
+      // doneThisWeek === 0
+      if (usedSeedFallback) {
+        const totalDoneWithValidDate = liveItems.reduce((acc, it) => {
+          if (it.status !== "done") return acc;
+          if (!it.date || !it.date.trim()) return acc;
+          const d = parseDisplayDate(it.date);
+          return d ? acc + 1 : acc;
+        }, 0);
+        const weeksElapsedForRate = Math.max(1, weekNumber);
+        const overallRate = totalDoneWithValidDate / weeksElapsedForRate;
+
+        if (overallRate >= 2) {
+          level = "ok";
+          needsScheduling = false;
+          paceBelowTarget = false;
+        } else if (overallRate >= 1) {
+          level = "warning";
+          needsScheduling = false;
+          paceBelowTarget = true;
+        } else {
+          level = "critical";
+          needsScheduling = true;
+          paceBelowTarget = true;
+        }
+      } else {
+        level = "critical";
+        needsScheduling = true;
+        paceBelowTarget = true;
+      }
+    }
   }
 
   // ── STEP 4: Messages array ───────────────────────────────────────────────
