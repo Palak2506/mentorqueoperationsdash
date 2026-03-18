@@ -7,7 +7,10 @@ export type StageId =
   | "projects-portfolio"
   | "payment"
   | "outreach"
-  | "interview-prep"
+  | "interview-diagnostics"
+  | "mock-interview-1"
+  | "mock-interview-2"
+  | "mock-interview-3"
   | "alumni";
 
 export interface Stage {
@@ -52,9 +55,12 @@ export const STAGES: Stage[] = [
   { id: "mentor-intro",        name: "Mentor Introduction",  order: 3, actionIds: [8, 9] },
   { id: "projects-portfolio",  name: "Projects & Portfolio", order: 4, actionIds: [10, 11, 12, 13] },
   { id: "payment",             name: "Payment & Admin",      order: 5, actionIds: [14] },
-  { id: "outreach",            name: "Outreach & LinkedIn",  order: 6, actionIds: [15, 16, 17, 18] },
-  { id: "interview-prep",      name: "Interview Prep",       order: 7, actionIds: [19, 20, 21, 22, 23, 24] },
-  { id: "alumni",              name: "Alumni / Placed",      order: 8, actionIds: [] },
+  { id: "outreach",            name: "Outreach & LinkedIn",       order: 6,  actionIds: [15, 16, 17, 18] },
+  { id: "interview-diagnostics", name: "Interview Diagnostics",   order: 7,  actionIds: [19, 20, 21] },
+  { id: "mock-interview-1",    name: "Mock Interview 1",          order: 8,  actionIds: [22, 23] },
+  { id: "mock-interview-2",    name: "Mock Interview 2",          order: 9,  actionIds: [24, 25] },
+  { id: "mock-interview-3",    name: "Mock Interview 3",          order: 10, actionIds: [26, 27] },
+  { id: "alumni",              name: "Alumni / Placed",           order: 11, actionIds: [] },
 ];
 
 export const JOURNEY_ACTIONS: JourneyAction[] = [
@@ -72,19 +78,56 @@ export const JOURNEY_ACTIONS: JourneyAction[] = [
   { id: 12, stageId: "projects-portfolio", shortTitle: "Portfolio Review Call",           title: "CV Review and Portfolio Finalisation Call",                                          duration: "20 min",              poc: "Ops Team A" },
   { id: 13, stageId: "projects-portfolio", shortTitle: "Portfolio Delivered",             title: "AI Extension, Portfolio Giving, Changes and Send MOM after Call",                   duration: "30 min",              poc: "Ops Team A" },
   { id: 14, stageId: "payment",            shortTitle: "Payment Message Sent",            title: "Send the Payment Message" },
-  { id: 15, stageId: "outreach",           shortTitle: "Outreach Guidance Session",       title: "Outreach Guidance Session – Ayush / Public Sector Guidance",                        duration: "30 min",              poc: "Mentor" },
-  { id: 16, stageId: "outreach",           shortTitle: "LinkedIn & Outreach Call",        title: "Call for Outreach Strategy and LinkedIn Profile Optimisation – Send MOM",            duration: "45 min",              poc: "Ops Team A" },
-  { id: 17, stageId: "outreach",           shortTitle: "Interview Diagnosis Form",        title: "Send Interview Diagnosis Google Form and Nudge Candidate to Fill" },
-  { id: 18, stageId: "outreach",           shortTitle: "Schedule Mock Interview 1",       title: "Share Interview Diagnosis Results and Schedule First Mock Interview",                duration: "45 min",              poc: "Ops Team A" },
-  { id: 19, stageId: "interview-prep",     shortTitle: "Mock Interview 1",                title: "Mock Interview 1 – Share MOM and Collect Feedback from Both Sides",                  duration: "60 min",              poc: "Mentor" },
-  { id: 20, stageId: "interview-prep",     shortTitle: "Feedback Call 1",                 title: "Short Feedback Call and Application Progress Check",                                  duration: "20 min",              poc: "Ops Team B" },
-  { id: 21, stageId: "interview-prep",     shortTitle: "Mock Interview 2",                title: "Mock Interview 2 – Share MOM and Collect Feedback",                                  duration: "60 min",              poc: "Mentor" },
-  { id: 22, stageId: "interview-prep",     shortTitle: "Feedback Call 2",                 title: "Short Feedback Call and Application Progress Check",                                  duration: "20 min",              poc: "Ops Team B" },
-  { id: 23, stageId: "interview-prep",     shortTitle: "Mock Interview 3",                title: "Mock Interview 3 – Share MOM and Collect Feedback",                                  duration: "60 min",              poc: "Mentor" },
-  { id: 24, stageId: "interview-prep",     shortTitle: "Feedback Call 3",                 title: "Short Feedback Call and Application Progress Check",                                  duration: "20 min",              poc: "Ops Team B" },
+  { id: 15, stageId: "outreach", shortTitle: "LinkedIn & Outreach Call",
+    title: "LinkedIn Profile Optimisation and Outreach Strategy Call – Send MOM",
+    duration: "45 min", poc: "Ops Team A" },
+
+  { id: 16, stageId: "outreach", shortTitle: "Outreach Guidance Session",
+    title: "Outreach Guidance Session – Target Companies, Platforms and Application Strategy",
+    duration: "30 min", poc: "Mentor" },
+
+  { id: 17, stageId: "outreach", shortTitle: "Message Templates Shared",
+    title: "Share Outreach Message Templates and Application Tracker with Candidate" },
+
+  { id: 18, stageId: "outreach", shortTitle: "Applications Started",
+    title: "Confirm Candidate Has Started Applying – Minimum 5 Applications Per Day Target Set" },
+
+  { id: 19, stageId: "interview-diagnostics", shortTitle: "Interview Diagnosis Form Sent",
+    title: "Send Interview Diagnosis Google Form and Nudge Candidate to Fill It" },
+
+  { id: 20, stageId: "interview-diagnostics", shortTitle: "Diagnosis & Mock Prep Call",
+    title: "Review Interview Diagnosis Results – Build Mock Interview Prep Plan with Candidate",
+    duration: "45 min", poc: "Ops Team A" },
+
+  { id: 21, stageId: "interview-diagnostics", shortTitle: "Interview Cheatsheet Shared",
+    title: "Share Personalised Interview Cheatsheet and STAR Framework Guide" },
+
+  { id: 22, stageId: "mock-interview-1", shortTitle: "Mock Interview 1",
+    title: "Mock Interview 1 – Share MOM and Collect Feedback from Both Sides",
+    duration: "60 min", poc: "Mentor" },
+
+  { id: 23, stageId: "mock-interview-1", shortTitle: "Feedback Call 1",
+    title: "Short Feedback Call 1 – Review Mock Interview and Check Application Progress",
+    duration: "20 min", poc: "Ops Team B" },
+
+  { id: 24, stageId: "mock-interview-2", shortTitle: "Mock Interview 2",
+    title: "Mock Interview 2 – Share MOM and Collect Feedback",
+    duration: "60 min", poc: "Mentor" },
+
+  { id: 25, stageId: "mock-interview-2", shortTitle: "Feedback Call 2",
+    title: "Short Feedback Call 2 – Review Progress and Plan for Final Round",
+    duration: "20 min", poc: "Ops Team B" },
+
+  { id: 26, stageId: "mock-interview-3", shortTitle: "Mock Interview 3",
+    title: "Mock Interview 3 – Final Round – Share MOM and Collect Feedback",
+    duration: "60 min", poc: "Mentor" },
+
+  { id: 27, stageId: "mock-interview-3", shortTitle: "Feedback Call 3",
+    title: "Final Feedback Call – Application Progress Check and Next Steps",
+    duration: "20 min", poc: "Ops Team B" },
 ];
 
-export const CANDIDATES: Candidate[] = [
+const CANDIDATES_LEGACY = [
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. SHWETA  – PM/HR  – Mentor: Adori
   // Enrolled: 13 Feb | Outreach call done 7 Mar | Next: Interview Diagnosis Form
@@ -641,7 +684,69 @@ export const CANDIDATES: Candidate[] = [
       { actionId: 24, status: "not-done" },
     ],
   },
-];
+] as unknown as Candidate[];
+
+function migrateCandidateActions(actions: CandidateAction[]): CandidateAction[] {
+  const legacyById = new Map<number, CandidateAction>();
+  for (const a of actions) legacyById.set(a.actionId, a);
+
+  const out: CandidateAction[] = [];
+
+  // Keep 1-14 as-is.
+  for (let id = 1; id <= 14; id += 1) {
+    const a = legacyById.get(id);
+    if (a) out.push(a);
+  }
+
+  const mapId = (from: number, to: number) => {
+    const a = legacyById.get(from);
+    if (a) out.push({ ...a, actionId: to });
+  };
+
+  // Old -> new mapping (preserve status/date/comment)
+  mapId(15, 16);
+  mapId(16, 15);
+  mapId(17, 19);
+  mapId(18, 20);
+  mapId(19, 22);
+  mapId(20, 23);
+  mapId(21, 24);
+  mapId(22, 25);
+  mapId(23, 26);
+  mapId(24, 27);
+
+  // Add new actions (default not-done unless already present)
+  const ensure = (id: number) => {
+    if (out.some((x) => x.actionId === id)) return;
+    out.push({ actionId: id, status: "not-done" });
+  };
+  ensure(17); // message templates shared
+  ensure(18); // applications started
+  ensure(21); // cheatsheet shared
+
+  // Keep order aligned with current JOURNEY_ACTIONS
+  out.sort((a, b) => a.actionId - b.actionId);
+  return out;
+}
+
+function migrateCandidateStage(candidate: Candidate, migratedActions: CandidateAction[]): StageId {
+  if (candidate.isAlumni) return "alumni";
+  if (candidate.currentStageId !== ("interview-prep" as StageId)) return candidate.currentStageId;
+
+  const byId = new Map(migratedActions.map((a) => [a.actionId, a]));
+  const mock1 = byId.get(22);
+  const mock2 = byId.get(24);
+
+  if (mock2?.status === "done") return "mock-interview-3";
+  if (mock1?.status === "done") return "mock-interview-2";
+  return "mock-interview-1";
+}
+
+export const CANDIDATES: Candidate[] = CANDIDATES_LEGACY.map((c) => {
+  const migratedActions = migrateCandidateActions(c.actions);
+  const currentStageId = migrateCandidateStage(c, migratedActions);
+  return { ...c, actions: migratedActions, currentStageId };
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -797,6 +902,11 @@ export const STAGE_STYLES: Record<string, { bg: string; text: string; border: st
   "projects-portfolio": { bg: "bg-sky-500/10",     text: "text-sky-400",     border: "border-sky-500/25",     dot: "bg-sky-400" },
   "payment":            { bg: "bg-sky-500/10",     text: "text-sky-400",     border: "border-sky-500/25",     dot: "bg-sky-400" },
   "outreach":           { bg: "bg-sky-500/10",     text: "text-sky-400",     border: "border-sky-500/25",     dot: "bg-sky-400" },
+  // Legacy id kept for safe fallbacks in UI lookups
   "interview-prep":     { bg: "bg-sky-500/10",     text: "text-sky-400",     border: "border-sky-500/25",     dot: "bg-sky-400" },
+  "interview-diagnostics": { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/25", dot: "bg-sky-400" },
+  "mock-interview-1":      { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/25", dot: "bg-violet-400" },
+  "mock-interview-2":      { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/25", dot: "bg-violet-400" },
+  "mock-interview-3":      { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/25", dot: "bg-violet-400" },
   "alumni":             { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/25", dot: "bg-emerald-400" },
 };

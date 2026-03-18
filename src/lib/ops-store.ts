@@ -6,6 +6,7 @@ import type { Candidate, StageId, RiskLevel } from "@/lib/data";
 export interface PacingAlert {
   level: "ok" | "warning" | "critical";
   messages: string[];
+  pacingReason: string;
   weeksElapsed: number;
   stepsPerWeek: number;       // actual completed steps/week
   doneCount: number;
@@ -64,6 +65,7 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
   const empty: PacingAlert = {
     level: "ok",
     messages: [],
+    pacingReason: "",
     weeksElapsed: 0,
     stepsPerWeek: 0,
     doneCount: 0,
@@ -83,8 +85,6 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
   const weekMs = 7 * 24 * 60 * 60 * 1000;
 
   // Live items (items[] parameter first; fallback to localStorage/seed).
-  // Also detect if we fell back to seed data (no user-updated journey saved yet).
-  let usedSeedFallback = false;
   let liveItems: PacingLiveItem[];
   if (items) {
     liveItems = items;
@@ -96,7 +96,6 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
         if (Array.isArray(parsed) && parsed.length > 0) {
           liveItems = parsed;
         } else {
-          usedSeedFallback = true;
           liveItems = candidate.actions.map((a) => ({
             actionId: a.actionId,
             status: a.status,
@@ -105,7 +104,6 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
           }));
         }
       } else {
-        usedSeedFallback = true;
         liveItems = candidate.actions.map((a) => ({
           actionId: a.actionId,
           status: a.status,
@@ -114,7 +112,6 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
         }));
       }
     } catch {
-      usedSeedFallback = true;
       liveItems = candidate.actions.map((a) => ({
         actionId: a.actionId,
         status: a.status,
@@ -123,7 +120,6 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
       }));
     }
   } else {
-    usedSeedFallback = true;
     liveItems = candidate.actions.map((a) => ({
       actionId: a.actionId,
       status: a.status,
@@ -158,22 +154,28 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
         : undefined)
     : undefined;
 
-  // ── STEP 1: Determine current week number since enrolled ──────────────────
+  // ── WEEK CALCULATION ─────────────────────────────────────────────────────
+  // Parse candidate.enrolledDate using parseDisplayDate. If it fails, we can't compute.
+  const parsedEnrolled = parseDisplayDate(candidate.enrolledDate);
+  if (!parsedEnrolled) return { ...empty, level: "ok" };
+
+  const enrolledDate = new Date(parsedEnrolled.getTime());
+  enrolledDate.setHours(0, 0, 0, 0);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const parsedEnrolled = parseDisplayDate(candidate.enrolledDate);
-  const enrolledDate = parsedEnrolled ? new Date(parsedEnrolled.getTime()) : new Date(today.getTime());
-  enrolledDate.setHours(0, 0, 0, 0);
-
-  const diffMs = Math.max(0, today.getTime() - enrolledDate.getTime());
-  let weekNumber = Math.floor(diffMs / weekMs) + 1; // week 1 = days 1-7 since enrolled
+  let weekNumber = Math.floor((today.getTime() - enrolledDate.getTime()) / weekMs) + 1;
   if (!Number.isFinite(weekNumber) || weekNumber < 1) weekNumber = 1;
 
-  const weekStart = new Date(enrolledDate.getTime() + (weekNumber - 1) * weekMs);
-  const weekEnd = new Date(enrolledDate.getTime() + weekNumber * weekMs);
+  const currentWeekStart = new Date(enrolledDate.getTime() + (weekNumber - 1) * weekMs);
+  const currentWeekEnd = new Date(enrolledDate.getTime() + weekNumber * weekMs);
 
-  // ── STEP 2: Count done activities in current week only ────────────────────
+  // ── THURSDAY RULE ─────────────────────────────────────────────────────────
+  const thursdayOfWeek = new Date(currentWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const isPastThursday = today.getTime() >= thursdayOfWeek.getTime();
+
+  // ── COUNT DONE / SCHEDULED THIS WEEK ─────────────────────────────────────
   let doneThisWeek = 0;
   for (const item of liveItems) {
     if (item.status !== "done") continue;
@@ -182,66 +184,54 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
     if (!parsed) continue;
     const itemDate = new Date(parsed.getTime());
     itemDate.setHours(0, 0, 0, 0);
-    if (itemDate >= weekStart && itemDate < weekEnd) {
+    if (itemDate >= currentWeekStart && itemDate < currentWeekEnd) {
       doneThisWeek += 1;
     }
   }
 
-  // ── STEP 3: Derive safety level (drives banner) ──────────────────────────
+  const scheduledThisWeek = liveItems.filter((i) => {
+    if (i.status !== "scheduled") return false;
+    if (!i.date) return false;
+    const d = parseDisplayDate(i.date);
+    if (!d) return false;
+    d.setHours(0, 0, 0, 0);
+    return d >= currentWeekStart && d < currentWeekEnd;
+  }).length;
+
+  // ── SAFETY LEVEL RULES ────────────────────────────────────────────────────
   let level: "ok" | "warning" | "critical";
   let needsScheduling: boolean;
   let paceBelowTarget: boolean;
+  let pacingReason: string;
 
-  if (doneThisWeek === 1) {
+  if (doneThisWeek >= 2) {
+    level = "ok";
+    needsScheduling = false;
+    paceBelowTarget = false;
+    pacingReason = `${doneThisWeek} activities completed this week ✓`;
+  } else if (doneThisWeek === 1) {
     level = "warning";
     needsScheduling = false;
     paceBelowTarget = true;
+    pacingReason = "1 of 2 activities done this week — 1 more needed";
+  } else if (scheduledThisWeek >= 1) {
+    level = "warning";
+    needsScheduling = false;
+    paceBelowTarget = true;
+    pacingReason = "No completions yet — session scheduled this week";
+  } else if (isPastThursday) {
+    level = "critical";
+    needsScheduling = true;
+    paceBelowTarget = true;
+    pacingReason = "No activities completed this week — action required";
   } else {
-    // doneThisWeek === 0 OR doneThisWeek >= 2
-    if (doneThisWeek >= 2) {
-      level = "ok";
-      needsScheduling = false;
-      paceBelowTarget = false;
-    } else {
-      // doneThisWeek === 0
-      if (usedSeedFallback) {
-        const totalDoneWithValidDate = liveItems.reduce((acc, it) => {
-          if (it.status !== "done") return acc;
-          if (!it.date || !it.date.trim()) return acc;
-          const d = parseDisplayDate(it.date);
-          return d ? acc + 1 : acc;
-        }, 0);
-        const weeksElapsedForRate = Math.max(1, weekNumber);
-        const overallRate = totalDoneWithValidDate / weeksElapsedForRate;
-
-        if (overallRate >= 2) {
-          level = "ok";
-          needsScheduling = false;
-          paceBelowTarget = false;
-        } else if (overallRate >= 1) {
-          level = "warning";
-          needsScheduling = false;
-          paceBelowTarget = true;
-        } else {
-          level = "critical";
-          needsScheduling = true;
-          paceBelowTarget = true;
-        }
-      } else {
-        level = "critical";
-        needsScheduling = true;
-        paceBelowTarget = true;
-      }
-    }
+    level = "warning";
+    needsScheduling = false;
+    paceBelowTarget = true;
+    pacingReason = "Week in progress — no activities yet";
   }
 
-  // ── STEP 4: Messages array ───────────────────────────────────────────────
-  const messages =
-    level === "critical"
-      ? ["No activities completed this week — immediate action required"]
-      : level === "warning"
-        ? ["1 of 2 activities done this week — complete one more"]
-        : [];
+  const messages = level === "ok" ? [] : [pacingReason];
 
   // Keep the rest of the PacingAlert shape intact (informational)
   const weeksElapsed = Math.max(1, weekNumber);
@@ -252,6 +242,7 @@ function buildPacingAlert(candidate: Candidate, items?: PacingLiveItem[]): Pacin
   return {
     level,
     messages,
+    pacingReason,
     weeksElapsed,
     stepsPerWeek,
     doneCount,

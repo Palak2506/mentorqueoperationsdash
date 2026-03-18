@@ -164,7 +164,16 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   const currentAct   = liveInfo.currentAction;
   const liveStageId  = liveInfo.currentStageId;
   const currentStage = STAGES.find((s) => s.id === liveStageId);
-  const stageStyle   = STAGE_STYLES[liveStageId] ?? STAGE_STYLES[candidate.currentStageId];
+  const stageStyle   =
+    STAGE_STYLES[liveStageId] ??
+    STAGE_STYLES[candidate.currentStageId] ??
+    STAGE_STYLES["interview-prep"] ??
+    {
+      bg: "bg-blue-500/10",
+      text: "text-blue-400",
+      border: "border-blue-500/25",
+      dot: "bg-blue-400",
+    };
 
   const deadlineAlerts = journey.filter((i) => {
     const ds = getDeadlineStatus(i.deadline);
@@ -188,6 +197,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
     : {
         level: "ok",
         messages: [],
+        pacingReason: "",
         weeksElapsed: 0,
         stepsPerWeek: 0,
         doneCount: 0,
@@ -354,6 +364,15 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                : safetyLevel === "watch"  ? "Needs your attention"
                : "On Track"}
             </p>
+            {pacing.pacingReason && (
+              <p className={`text-xs mt-0.5 opacity-75 ${
+                safetyLevel === "at-risk" ? "text-red-300"
+                : safetyLevel === "watch" ? "text-amber-300"
+                : "text-sky-300"
+              }`}>
+                {pacing.pacingReason}
+              </p>
+            )}
           </div>
           {stageAge > 0 && (
             <span className="text-[10px] text-slate-500">{stageAge}d in current stage</span>
@@ -983,7 +1002,12 @@ function KanbanColumn({
   onInsert: (idx: number, data: Omit<SessionItem, "instanceId" | "isCustom">) => void;
 }) {
   const [addingStep, setAddingStep] = useState(false);
-  const s = STAGE_STYLES[stageId] ?? { bg: "bg-slate-800/40", text: "text-slate-400", border: "border-slate-700", dot: "bg-slate-500" };
+  const s = STAGE_STYLES[stageId] ?? STAGE_STYLES["interview-prep"] ?? {
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    border: "border-blue-500/25",
+    dot: "bg-blue-400",
+  };
   const doneCount = items.filter((i) => i.status === "done").length;
   const activeCount = items.filter((i) => i.status !== "done" && i.status !== "na").length;
 
@@ -1227,7 +1251,14 @@ function SessionRow({
   const isScheduled = item.status === "scheduled";
 
   // Stage color for the tiny indicator
-  const stageStyle = item.stageId ? STAGE_STYLES[item.stageId] : null;
+  const stageStyle = item.stageId
+    ? STAGE_STYLES[item.stageId] ?? STAGE_STYLES["interview-prep"] ?? {
+        bg: "bg-blue-500/10",
+        text: "text-blue-400",
+        border: "border-blue-500/25",
+        dot: "bg-blue-400",
+      }
+    : null;
 
   return (
     <div

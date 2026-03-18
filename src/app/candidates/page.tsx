@@ -352,7 +352,12 @@ export default function CandidatesPage() {
           )}
           {filtered.map((c) => {
             const stage  = STAGES.find((s) => s.id === c.currentStageId);
-            const s      = STAGE_STYLES[c.currentStageId];
+            const s      = STAGE_STYLES[c.currentStageId] ?? STAGE_STYLES["interview-prep"] ?? {
+              bg: "bg-blue-500/10",
+              text: "text-blue-400",
+              border: "border-blue-500/25",
+              dot: "bg-blue-400",
+            };
             const live   = liveDataMap.get(c.id);
             const curAct = live?.currentAction ?? null;
             const pct    = live?.progress ?? 0;
@@ -440,7 +445,7 @@ export default function CandidatesPage() {
                 {/* Pacing micro-alert */}
                 {pacing && pacing.messages.length > 0 && (
                   <p className={`text-[10px] leading-snug truncate ${pacing.level === "critical" ? "text-red-400" : "text-amber-400"}`}>
-                    ⚠ {pacing.messages[0]}
+                    ⚠ {pacing.pacingReason}
                   </p>
                 )}
 
@@ -470,7 +475,12 @@ export default function CandidatesPage() {
         <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden">
           <div className="flex gap-3 overflow-x-auto p-4 pb-5">
             {kanbanGroups.map(({ stage, candidates: cols }) => {
-              const s = STAGE_STYLES[stage.id];
+              const s = STAGE_STYLES[stage.id] ?? STAGE_STYLES["interview-prep"] ?? {
+                bg: "bg-blue-500/10",
+                text: "text-blue-400",
+                border: "border-blue-500/25",
+                dot: "bg-blue-400",
+              };
               return (
                 <div key={stage.id} className="flex-shrink-0 w-56">
                   {/* Column header */}
