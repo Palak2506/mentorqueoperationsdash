@@ -1,16 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { JOURNEY_ACTIONS } from '@/lib/data';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const optedOut = searchParams.get('optedOut') === 'true';
+
     const candidates = await prisma.candidate.findMany({
+      where: { optedOut },
       include: {
         journeyItems: {
           orderBy: { orderIndex: 'asc' },
         },
       },
-      orderBy: { createdAt: 'asc' },
     });
 
     return NextResponse.json(candidates);
