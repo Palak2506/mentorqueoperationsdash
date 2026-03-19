@@ -158,6 +158,7 @@ export default function CandidatesPage() {
       map.set(c.id, computeLiveCandidateInfo(c));
     }
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCandidates, journeyVersion, mounted]);
 
   const enrichedCandidates = useMemo(() => {
@@ -250,6 +251,7 @@ export default function CandidatesPage() {
       }
     }
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, journeyVersion, mounted]);
 
   const paceRows = useMemo(() => {

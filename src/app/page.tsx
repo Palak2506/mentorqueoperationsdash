@@ -166,6 +166,7 @@ export default function HomePage() {
       map.set(c.id, computeLiveCandidateInfo(c));
     }
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCandidates, journeyVersion, mounted]);
 
   const enrichedCandidates = useMemo(() => {
@@ -237,6 +238,7 @@ export default function HomePage() {
         if (order[a.stage] !== order[b.stage]) return order[a.stage] - order[b.stage];
         return a.candidate.name.localeCompare(b.candidate.name);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, journeyVersion, mounted]);
   const paceAtRisk = useMemo(() => paceRows.filter((x) => x.stage === "at-risk"), [paceRows]);
   const paceWatch = useMemo(() => paceRows.filter((x) => x.stage === "watch"), [paceRows]);
