@@ -5,14 +5,6 @@ import { loadJourney } from '../src/lib/session-store';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Build a lookup map for JOURNEY_ACTIONS keyed by actionId
-  const actionLookup = new Map<number, any>();
-  for (const action of JOURNEY_ACTIONS as any[]) {
-    if (action && typeof action.actionId === 'number') {
-      actionLookup.set(action.actionId, action);
-    }
-  }
-
   const tx: any[] = [];
 
   for (const candidate of CANDIDATES as any[]) {
@@ -51,7 +43,7 @@ async function main() {
     actions.forEach((action: any, index: number) => {
       if (action == null || typeof action.actionId !== 'number') return;
 
-      const actionMeta = actionLookup.get(action.actionId);
+      const ja = JOURNEY_ACTIONS.find((j) => j.id === action.actionId);
 
       const instanceId = `seed-${candidate.id}-${action.actionId}`;
 
@@ -59,32 +51,33 @@ async function main() {
         prisma.journeyItem.upsert({
           where: { instanceId },
           update: {
+            instanceId: `seed-${candidate.id}-${action.actionId}`,
             candidateId: candidate.id,
             actionId: action.actionId,
-            stageId: actionMeta?.stageId ?? null,
-            shortTitle: actionMeta?.shortTitle ?? action.shortTitle ?? '',
-            title: actionMeta?.title ?? action.title ?? null,
-            status: action.status ?? 'not-done',
+            stageId: ja?.stageId ?? null,
+            shortTitle: ja?.shortTitle ?? '',
+            title: ja?.title ?? '',
+            status: action.status,
             date: action.date ?? null,
             comment: action.comment ?? null,
-            poc: action.poc ?? null,
-            duration: action.duration ?? null,
-            isCustom: action.isCustom ?? false,
+            poc: ja?.poc ?? null,
+            duration: ja?.duration ?? null,
+            isCustom: false,
             orderIndex: index,
           },
           create: {
+            instanceId: `seed-${candidate.id}-${action.actionId}`,
             candidateId: candidate.id,
-            instanceId,
             actionId: action.actionId,
-            stageId: actionMeta?.stageId ?? null,
-            shortTitle: actionMeta?.shortTitle ?? action.shortTitle ?? '',
-            title: actionMeta?.title ?? action.title ?? null,
-            status: action.status ?? 'not-done',
+            stageId: ja?.stageId ?? null,
+            shortTitle: ja?.shortTitle ?? '',
+            title: ja?.title ?? '',
+            status: action.status,
             date: action.date ?? null,
             comment: action.comment ?? null,
-            poc: action.poc ?? null,
-            duration: action.duration ?? null,
-            isCustom: action.isCustom ?? false,
+            poc: ja?.poc ?? null,
+            duration: ja?.duration ?? null,
+            isCustom: false,
             orderIndex: index,
           },
         })
