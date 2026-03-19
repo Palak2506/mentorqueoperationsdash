@@ -1377,10 +1377,26 @@ function KanbanCard({
       {showMessages && tpl && (
         <div className="border-t border-slate-700 bg-slate-950/60 p-2.5 space-y-2">
           {tpl.before && (
-            <TemplateCard label="📤 Before" color="sky" template={tpl.before} candidate={candidate} />
+            <TemplateCard
+              label="📤 Before"
+              color="sky"
+              template={tpl.before}
+              candidate={candidate}
+              candidateId={candidate.id}
+              actionId={item.actionId}
+              templateLabel="before"
+            />
           )}
           {tpl.after && (
-            <TemplateCard label="📥 After / MOM" color="emerald" template={tpl.after} candidate={candidate} />
+            <TemplateCard
+              label="📥 After / MOM"
+              color="emerald"
+              template={tpl.after}
+              candidate={candidate}
+              candidateId={candidate.id}
+              actionId={item.actionId}
+              templateLabel="after"
+            />
           )}
         </div>
       )}
@@ -1624,6 +1640,9 @@ function SessionRow({
               color="sky"
               template={tpl.before}
               candidate={candidate}
+              candidateId={candidate.id}
+              actionId={item.actionId}
+              templateLabel="before"
             />
           )}
           {tpl.after && (
@@ -1632,6 +1651,9 @@ function SessionRow({
               color="emerald"
               template={tpl.after}
               candidate={candidate}
+              candidateId={candidate.id}
+              actionId={item.actionId}
+              templateLabel="after"
             />
           )}
         </div>
@@ -1818,11 +1840,17 @@ function TemplateCard({
   color,
   template,
   candidate,
+  candidateId,
+  actionId,
+  templateLabel,
 }: {
   label: string;
   color: "sky" | "emerald";
   template: string;
   candidate: { name: string; mentor: string; role: string };
+  candidateId: string;
+  actionId?: number;
+  templateLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -1831,11 +1859,20 @@ function TemplateCard({
     .replace(/\{\{mentor\}\}/g, candidate.mentor)
     .replace(/\{\{role\}\}/g,   candidate.role);
 
+  const storageKey = `mq-template-edit-v1-${candidateId}-${actionId ?? "custom"}-${templateLabel}`;
+
+  const [editedText, setEditedText] = useState(() => {
+    if (typeof window === "undefined") return text;
+    return localStorage.getItem(storageKey) ?? text;
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+
   async function copy() {
-    try { await navigator.clipboard.writeText(text); }
+    try { await navigator.clipboard.writeText(editedText); }
     catch {
       const ta = document.createElement("textarea");
-      ta.value = text; document.body.appendChild(ta); ta.select();
+      ta.value = editedText; document.body.appendChild(ta); ta.select();
       document.execCommand("copy"); document.body.removeChild(ta);
     }
     setCopied(true);
@@ -1850,18 +1887,58 @@ function TemplateCard({
     <div className={`rounded-lg border ${borderCl} bg-slate-900 overflow-hidden`}>
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/50">
         <span className={`text-xs font-semibold ${labelCl}`}>{label}</span>
-        <button
-          onClick={copy}
-          className={`rounded px-2.5 py-1 text-xs font-medium transition ${
-            copied ? "bg-emerald-600 text-white" : btnNorm
-          }`}
-        >
-          {copied ? "✓ Copied!" : "Copy"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setIsEditing((v) => !v)}
+            className={`rounded px-2.5 py-1 text-xs font-medium 
+         transition border border-slate-700
+         ${isEditing 
+           ? 'bg-slate-700 text-white' 
+           : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+          >
+            {isEditing ? "Preview" : "Edit"}
+          </button>
+          {isEditing && (
+            <button
+              onClick={() => {
+                localStorage.setItem(storageKey, editedText);
+                setSavedMsg(true);
+                setTimeout(() => setSavedMsg(false), 2000);
+                setIsEditing(false);
+              }}
+              className="rounded px-2.5 py-1 text-xs font-medium 
+           bg-emerald-600 hover:bg-emerald-500 text-white transition"
+            >
+              {savedMsg ? "✓ Saved!" : "Save"}
+            </button>
+          )}
+          <button
+            onClick={copy}
+            className={`rounded px-2.5 py-1 text-xs font-medium 
+         transition ${copied 
+           ? 'bg-emerald-600 text-white' 
+           : btnNorm}`}
+          >
+            {copied ? "✓ Copied!" : "Copy"}
+          </button>
+        </div>
       </div>
-      <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-slate-300 px-3 py-3">
-        {text}
-      </pre>
+      {isEditing ? (
+        <textarea
+          value={editedText}
+          onChange={(e) => setEditedText(e.target.value)}
+          rows={12}
+          className={`w-full bg-slate-900 px-3 py-3 text-xs 
+         text-slate-300 focus:outline-none resize-y 
+         leading-relaxed font-sans border-0`}
+          autoFocus
+        />
+      ) : (
+        <pre className="whitespace-pre-wrap font-sans text-xs 
+       leading-relaxed text-slate-300 px-3 py-3">
+          {editedText}
+        </pre>
+      )}
     </div>
   );
 }
