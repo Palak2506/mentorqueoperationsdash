@@ -8,13 +8,12 @@ export async function POST(
 ) {
   try {
     const { optedOut } = await req.json();
-    const candidate = await prisma.candidate.update({
-      where: { id: params.id },
-      // Cast to any so this compiles even if the generated
-      // Prisma Client types have not yet picked up the new field.
-      data: { optedOut: Boolean(optedOut) } as any,
-    });
-    return NextResponse.json(candidate);
+    await prisma.$executeRaw`
+      UPDATE "Candidate" 
+      SET "optedOut" = ${Boolean(optedOut)}
+      WHERE id = ${params.id}
+    `;
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('opted-out error:', error);
     return NextResponse.json(

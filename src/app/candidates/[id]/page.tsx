@@ -65,6 +65,7 @@ type SafetyLevel = "safe" | "watch" | "at-risk";
 export default function CandidateDetailPage({ params }: { params: { id: string } }) {
   const id = typeof params === "object" && params && "id" in params ? params.id : "";
   const isPollingUpdate = useRef(false);
+  const lastUserActionRef = useRef<number>(0);
   const [loaded, setLoaded] = useState(false);
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [mentorCatalog, setMentorCatalog] = useState<string[]>([]);
@@ -244,6 +245,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
 
     async function refreshJourney() {
       try {
+        if (Date.now() - lastUserActionRef.current < 3000) return;
         const res = await fetch(`/api/candidates/${candidate!.id}/journey`)
         if (!res.ok) return
         const items = await res.json()
@@ -462,6 +464,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   // ─── Mutators ───────────────────────────────────────────────────────────────
 
   function updateItem(instanceId: string, updates: Partial<SessionItem>) {
+    lastUserActionRef.current = Date.now();
     setJourney((prev) => {
       const next = prev.map((i) => (i.instanceId === instanceId ? { ...i, ...updates } : i));
       // Auto-sync calendar: add/update when scheduled with a date, remove otherwise
@@ -484,6 +487,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   }
 
   function insertAt(index: number, data: Omit<SessionItem, "instanceId" | "isCustom">) {
+    lastUserActionRef.current = Date.now();
     const newItem: SessionItem = {
       ...data,
       instanceId: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -493,11 +497,13 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   }
 
   function deleteItem(instanceId: string) {
+    lastUserActionRef.current = Date.now();
     setJourney((prev) => prev.filter((i) => i.instanceId !== instanceId));
     if (editingId === instanceId) setEditingId(null);
   }
 
   function cycleStatus(item: SessionItem) {
+    lastUserActionRef.current = Date.now();
     const cycle: ActionStatus[] = ["not-done", "scheduled", "on-hold", "done", "na"];
     const idx = cycle.indexOf(item.status);
     const next = cycle[(idx + 1) % cycle.length];
