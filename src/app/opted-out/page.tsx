@@ -12,13 +12,11 @@ import {
   loadOptedOutCandidates,
   reinstateCandidate,
 } from "@/lib/ops-store";
-import { computeLiveCandidateInfo } from "@/lib/session-store";
 
 export default function OptedOutPage() {
   const [, setCustomCandidates] = useState<Candidate[]>([]);
   const [, setMentorOverrides] = useState<Record<string, string>>({});
   const [optedOutCandidates, setOptedOutCandidates] = useState<any[]>([]);
-  const [mounted, setMounted] = useState(false);
 
   async function load() {
     try {
@@ -46,7 +44,6 @@ export default function OptedOutPage() {
     }
     setCustomCandidates(loadCustomCandidates());
     setMentorOverrides(loadMentorOverrides());
-    setMounted(true)
   }
 
   useEffect(() => {
@@ -55,7 +52,10 @@ export default function OptedOutPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const optedOutList = useMemo(() => optedOutCandidates, [optedOutCandidates]);
+  const optedOutList = useMemo(
+    () => (optedOutCandidates ?? []),
+    [optedOutCandidates],
+  );
 
   const [refreshVersion, setRefreshVersion] = useState(0);
 
@@ -102,28 +102,56 @@ export default function OptedOutPage() {
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {optedOutList.map((c) => {
-              const live = mounted ? computeLiveCandidateInfo(c) : null;
-              const progress = live?.progress ?? 0;
-              const stage = live?.currentStageId ? STAGES.find((s) => s.id === live.currentStageId) : undefined;
-              const stageStyle = stage ? STAGE_STYLES[stage.id] : STAGE_STYLES[c.currentStageId];
+            {(optedOutList ?? []).map((candidate) => {
+              const actions =
+                candidate.journeyItems?.map((ji: any) => ({
+                  actionId: ji.actionId,
+                  status: ji.status,
+                })) ??
+                candidate.actions ??
+                [];
+              const applicable = (actions ?? []).filter(
+                (a: any) => a.status !== "na",
+              );
+              const done = applicable.filter((a: any) => a.status === "done");
+              const progress =
+                applicable.length === 0
+                  ? 0
+                  : Math.round((done.length / applicable.length) * 100);
+              const stage = STAGES.find(
+                (s) => s.id === candidate.currentStageId,
+              );
+              const stageStyle =
+                stage ? STAGE_STYLES[stage.id] : STAGE_STYLES[candidate.currentStageId];
               return (
-                <div key={`${c.id}-${refreshVersion}`} className="rounded-xl border border-slate-700 bg-slate-950 p-3 space-y-2">
+                <div
+                  key={`${candidate.id}-${refreshVersion}`}
+                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 space-y-2"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-slate-100">{c.name}</p>
-                      <p className="text-xs text-slate-400">{c.role}</p>
+                      <p className="font-semibold text-slate-100">
+                        {candidate.name}
+                      </p>
+                      <p className="text-xs text-slate-400">{candidate.role}</p>
                     </div>
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${stageStyle.bg} ${stageStyle.text} ${stageStyle.border}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${stageStyle.dot}`} />
-                      {stage?.name ?? c.currentStageId}
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${stageStyle.bg} ${stageStyle.text} ${stageStyle.border}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${stageStyle.dot}`}
+                      />
+                      {stage?.name ?? candidate.currentStageId}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-                    <div className="h-full rounded-full bg-amber-400" style={{ width: `${progress}%` }} />
+                    <div
+                      className="h-full rounded-full bg-amber-400"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
                   <button
-                    onClick={() => handleReinstate(c.id)}
+                    onClick={() => handleReinstate(candidate.id)}
                     className="rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition"
                   >
                     Reinstate
