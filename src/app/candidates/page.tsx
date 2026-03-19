@@ -8,7 +8,6 @@ import {
   loadCustomCandidates,
   loadDeletedCandidates,
   loadOptedOutCandidates,
-  loadMentorOverrides,
   getStageAgeDays,
   getPaceBucket,
   upsertStageTracking,
@@ -43,7 +42,6 @@ function getBatchLabel(enrolledDate: string): string {
 
 export default function CandidatesPage() {
   const [customCandidates, setCustomCandidates] = useState<Candidate[]>([]);
-  const [mentorOverrides, setMentorOverrides]   = useState<Record<string, string>>({});
   const [deletedCandidates, setDeletedCandidates] = useState<string[]>([]);
   const [optedOutCandidates, setOptedOutCandidates] = useState<string[]>([]);
 
@@ -63,45 +61,44 @@ export default function CandidatesPage() {
     async function load() {
       try {
         const res = await fetch('/api/candidates');
-      const data = (await res.json()) as Array<{
-        id: string;
-        name: string;
-        role: string;
-        mentor: string;
-        currentStageId: StageId;
-        riskLevel: RiskLevel;
-        isAlumni: boolean;
-        enrolledDate: string;
-        journeyItems?: Array<{
-          actionId: number;
-          status: ActionStatus;
-          date?: string;
-          comment?: string;
+        const data = (await res.json()) as Array<{
+          id: string;
+          name: string;
+          role: string;
+          mentor: string;
+          currentStageId: StageId;
+          riskLevel: RiskLevel;
+          isAlumni: boolean;
+          enrolledDate: string;
+          journeyItems?: Array<{
+            actionId: number;
+            status: ActionStatus;
+            date?: string;
+            comment?: string;
+          }>;
+          notes?: string;
         }>;
-        notes?: string;
-      }>;
-      const mapped = data.map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.role,
-        mentor: c.mentor,
-        currentStageId: c.currentStageId,
-        riskLevel: c.riskLevel,
-        isAlumni: c.isAlumni,
-        enrolledDate: c.enrolledDate,
-        actions: (c.journeyItems ?? []).map((ji) => ({
-          actionId: ji.actionId,
-          status: ji.status,
-          date: ji.date ?? undefined,
-          comment: ji.comment ?? undefined,
-        })),
-        notes: c.notes ?? undefined,
-      }));
+        const mapped = data.map((c) => ({
+          id: c.id,
+          name: c.name,
+          role: c.role,
+          mentor: c.mentor,
+          currentStageId: c.currentStageId,
+          riskLevel: c.riskLevel,
+          isAlumni: c.isAlumni,
+          enrolledDate: c.enrolledDate,
+          actions: (c.journeyItems ?? []).map((ji) => ({
+            actionId: ji.actionId,
+            status: ji.status,
+            date: ji.date ?? undefined,
+            comment: ji.comment ?? undefined,
+          })),
+          notes: c.notes ?? undefined,
+        }));
         setAllCandidatesFromApi(mapped);
       } catch {
         setCustomCandidates(loadCustomCandidates());
       }
-      setMentorOverrides(loadMentorOverrides());
       setDeletedCandidates(loadDeletedCandidates());
       setOptedOutCandidates(loadOptedOutCandidates());
       setMounted(true);
@@ -114,15 +111,10 @@ export default function CandidatesPage() {
       const excluded = new Set<string>([...deletedCandidates, ...optedOutCandidates]);
       return allCandidatesFromApi.filter((c) => !excluded.has(c.id));
     }
-    const overrides = mentorOverrides;
     const candidates = [...CANDIDATES, ...customCandidates];
-    const candidatesWithMentors = candidates.map((c) => ({
-      ...c,
-      mentor: overrides[c.id] ?? c.mentor,
-    }));
     const excluded = new Set<string>([...deletedCandidates, ...optedOutCandidates]);
-    return candidatesWithMentors.filter((c) => !excluded.has(c.id));
-  }, [allCandidatesFromApi, customCandidates, mentorOverrides, deletedCandidates, optedOutCandidates]);
+    return candidates.filter((c) => !excluded.has(c.id));
+  }, [allCandidatesFromApi, customCandidates, deletedCandidates, optedOutCandidates]);
 
   const liveDataMap = useMemo(() => {
     if (!mounted) return new Map<string, LiveCandidateInfo>();

@@ -152,7 +152,12 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           duration: ji.duration ?? undefined,
           isCustom: ji.isCustom,
         }));
-        setJourney(items.length > 0 ? items : loadJourney(candidateData));
+        if (items.length === 0) {
+          const { loadJourney } = await import("@/lib/session-store");
+          setJourney(loadJourney(candidateData));
+        } else {
+          setJourney(items);
+        }
 
         const savedNotes = await fetch(`/api/candidate-notes/${id}`)
           .then((r) => r.json())
