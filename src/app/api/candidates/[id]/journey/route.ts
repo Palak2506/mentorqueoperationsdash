@@ -13,6 +13,23 @@ if (!process.env.DATABASE_URL) {
 
 const sql = neon(process.env.DATABASE_URL);
 
+interface JourneyItemRow {
+  id: string;
+  candidateId: string;
+  instanceId: string;
+  actionId: number | null;
+  stageId: string | null;
+  shortTitle: string;
+  title: string | null;
+  status: string;
+  date: string | null;
+  comment: string | null;
+  poc: string | null;
+  duration: string | null;
+  isCustom: boolean;
+  orderIndex: number;
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   const { id: candidateId } = params;
 
@@ -144,17 +161,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
       `;
     });
 
-    const transactionResults = await sql.transaction(upserts);
-    const result = transactionResults.map((rows: any) =>
-      Array.isArray(rows) ? rows[0] : rows
-    );
+    const transactionResults = (await sql.transaction(upserts)) as JourneyItemRow[][];
+    const result = transactionResults
+      .map((rows) => rows[0])
+      .filter((row): row is JourneyItemRow => row != null);
 
     // Keep deterministic ordering for the client.
-    const sorted = result.slice().sort((a: any, b: any) => {
-      const ao = typeof a?.orderIndex === "number" ? a.orderIndex : Number(a?.orderIndex ?? 0);
-      const bo = typeof b?.orderIndex === "number" ? b.orderIndex : Number(b?.orderIndex ?? 0);
-      return ao - bo;
-    });
+    const sorted = result.slice().sort((a, b) => a.orderIndex - b.orderIndex);
 
     return NextResponse.json(sorted);
   } catch (error) {

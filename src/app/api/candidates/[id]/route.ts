@@ -13,6 +13,10 @@ if (!process.env.DATABASE_URL) {
 
 const sql = neon(process.env.DATABASE_URL);
 
+interface DeletedCandidateRow {
+  id: string;
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   const { id } = params;
 
@@ -177,7 +181,7 @@ export async function DELETE(
       sql`DELETE FROM "Candidate" WHERE "id" = ${params.id} RETURNING "id"`,
     ]);
 
-    const deletedCandidateRows = results?.[results.length - 1] as any;
+    const deletedCandidateRows = results?.[results.length - 1] as DeletedCandidateRow[] | undefined;
     const deletedCandidate = Array.isArray(deletedCandidateRows) ? deletedCandidateRows[0] : undefined;
     if (!deletedCandidate) {
       throw new Error('Candidate not found');

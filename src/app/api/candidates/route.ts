@@ -9,8 +9,66 @@ if (!process.env.DATABASE_URL) {
 
 const sql = neon(process.env.DATABASE_URL);
 
-function groupCandidatesWithJourneyItems(rows: Array<Record<string, any>>) {
-  const map = new Map<string, any>();
+interface JourneyItemRow {
+  id: string;
+  candidateId: string;
+  instanceId: string;
+  actionId: number | null;
+  stageId: string | null;
+  shortTitle: string;
+  title: string | null;
+  status: string;
+  date: string | null;
+  comment: string | null;
+  poc: string | null;
+  duration: string | null;
+  isCustom: boolean;
+  orderIndex: number;
+}
+
+interface CandidateJourneyRow {
+  id: string;
+  name: string;
+  role: string;
+  mentor: string;
+  currentStageId: string;
+  riskLevel: string;
+  isAlumni: boolean;
+  optedOut: boolean;
+  enrolledDate: string;
+  notes: string | null;
+  journeyItemId: string | null;
+  journeyCandidateId: string | null;
+  journeyInstanceId: string | null;
+  journeyActionId: number | null;
+  journeyStageId: string | null;
+  journeyShortTitle: string | null;
+  journeyTitle: string | null;
+  journeyStatus: string | null;
+  journeyDate: string | null;
+  journeyComment: string | null;
+  journeyPoc: string | null;
+  journeyDuration: string | null;
+  journeyIsCustom: boolean | null;
+  journeyOrderIndex: number | null;
+}
+
+interface CandidateResponse {
+  id: string;
+  name: string;
+  role: string;
+  mentor: string;
+  currentStageId: string;
+  riskLevel: string;
+  isAlumni: boolean;
+  optedOut: boolean;
+  enrolledDate: string;
+  notes: string | null;
+  journeyItems: JourneyItemRow[];
+}
+
+function groupCandidatesWithJourneyItems(rows: CandidateJourneyRow[]) {
+  const map = new Map<string, CandidateResponse>();
 
   for (const row of rows) {
     let candidate = map.get(row.id);
@@ -34,19 +92,19 @@ function groupCandidatesWithJourneyItems(rows: Array<Record<string, any>>) {
     if (row.journeyItemId) {
       candidate.journeyItems.push({
         id: row.journeyItemId,
-        candidateId: row.journeyCandidateId,
-        instanceId: row.journeyInstanceId,
+        candidateId: row.journeyCandidateId!,
+        instanceId: row.journeyInstanceId!,
         actionId: row.journeyActionId,
         stageId: row.journeyStageId,
-        shortTitle: row.journeyShortTitle,
+        shortTitle: row.journeyShortTitle!,
         title: row.journeyTitle,
-        status: row.journeyStatus,
+        status: row.journeyStatus!,
         date: row.journeyDate,
         comment: row.journeyComment,
         poc: row.journeyPoc,
         duration: row.journeyDuration,
-        isCustom: row.journeyIsCustom,
-        orderIndex: row.journeyOrderIndex,
+        isCustom: row.journeyIsCustom!,
+        orderIndex: row.journeyOrderIndex!,
       });
     }
   }
@@ -90,7 +148,7 @@ export async function GET(req: NextRequest) {
         ON ji."candidateId" = c.id
       WHERE c."optedOut" = ${optedOut}
       ORDER BY c.id ASC, ji."orderIndex" ASC
-    `;
+    ` as CandidateJourneyRow[];
 
     const candidates = groupCandidatesWithJourneyItems(rows);
 
@@ -247,7 +305,7 @@ export async function POST(request: Request) {
         ON ji."candidateId" = c.id
       WHERE c.id = ${candidateId}
       ORDER BY ji."orderIndex" ASC
-    `;
+    ` as CandidateJourneyRow[];
 
     const [candidate] = groupCandidatesWithJourneyItems(rows);
     return NextResponse.json(candidate, { status: 201 });
