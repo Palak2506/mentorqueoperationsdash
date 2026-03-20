@@ -1,9 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=Figtree:wght@300;400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  --font-display: "Inter", "Playfair Display", Georgia, "Times New Roman", Times, serif;
+
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* When enabled, switches the primary body font to the “variable” style. */
+.theme {
+  --font-sans: "Figtree", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
 body {
   background-color: #000000;
+  font-family: var(--font-sans) !important;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display) !important;
 }
 
 /* ─── Blue & White / Blue & Black palette ─────────────────────────────────── */
@@ -34,6 +61,45 @@ body {
 body {
   background-color: var(--bg) !important;
   color: var(--text) !important;
+}
+
+/* ─── Custom scrollbar (global) ──────────────────────────────────────────── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--blue) 65%, transparent) color-mix(in srgb, var(--surface) 65%, transparent);
+}
+
+/* Chromium / Safari */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--blue) 75%, transparent),
+    color-mix(in srgb, var(--blue-border) 75%, transparent)
+  );
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--surface) 80%, transparent);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--blue) 92%, transparent),
+    color-mix(in srgb, var(--blue-border) 92%, transparent)
+  );
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 html.theme-light {
@@ -214,13 +280,101 @@ a:hover { color: var(--blue) !important; }
 
 /* ─── Blue header bar ────────────────────────────────────────────────────── */
 .mq-header {
-  background-color: #1e3a8a !important;
-  border-bottom-color: #1e40af !important;
+  background-color: rgba(0, 0, 0, 0.28) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(14px) !important;
 }
 
 .theme-light .mq-header {
-  background-color: #2563eb !important;
-  border-bottom-color: #1d4ed8 !important;
+  background-color: rgba(0, 0, 0, 0.12) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
 }
 
 .mq-header a:hover { color: #ffffff !important; }
+
+/* ─── Glow buttons ─────────────────────────────────────────────────────── */
+.glow-btn {
+  --glow-from: #60a5fa;
+  --glow-to: #3b82f6;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background-image: linear-gradient(135deg, var(--glow-from), var(--glow-to));
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+
+  box-shadow:
+    0 8px 30px rgba(59, 130, 246, 0.25),
+    0 0 0 1px rgba(96, 165, 250, 0.15) inset;
+
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
+  overflow: hidden;
+  user-select: none;
+}
+
+.glow-btn::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -40%;
+  width: 60%;
+  height: 180%;
+  transform: translateX(-120%) rotate(20deg);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 30%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.0) 70%,
+    transparent 100%
+  );
+  opacity: 0.9;
+  transition: transform 650ms ease;
+  pointer-events: none;
+}
+
+.glow-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05) saturate(1.05);
+  box-shadow:
+    0 14px 44px rgba(59, 130, 246, 0.33),
+    0 0 0 1px rgba(96, 165, 250, 0.2) inset;
+}
+
+.glow-btn:hover::before {
+  transform: translateX(260%) rotate(20deg);
+}
+
+.glow-btn--violet {
+  --glow-from: #c4b5fd;
+  --glow-to: #7c3aed;
+}
+
+.glow-btn--emerald {
+  --glow-from: #6ee7b7;
+  --glow-to: #10b981;
+}
+
+/* ─── Magic bento cards (hover lift) ─────────────────────────────────────── */
+.magic-bento-card {
+  border-radius: 18px;
+  transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+.magic-bento-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(59, 130, 246, 0.18) inset;
+}
+
+/* A small blur feel on translucent cards. */
+.magic-bento-card {
+  backdrop-filter: blur(10px);
+}

@@ -22,6 +22,7 @@ import {
   computeLiveCandidateInfo,
   type LiveCandidateInfo,
 } from "@/lib/session-store";
+import { GradientBlinds } from "@/components/ui/gradient-blinds";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -282,7 +283,24 @@ export default function CandidatesPage() {
   }, [filtered]);
 
   return (
-    <div className="space-y-5">
+    <div className="relative">
+      <div className="absolute inset-0 z-0 opacity-20">
+        <GradientBlinds
+          gradientColors={["#1e3a5f", "#2563eb", "#3b82f6", "#60a5fa"]}
+          angle={45}
+          noise={0.08}
+          blindCount={16}
+          blindMinWidth={90}
+          mouseDampening={0.35}
+          spotlightRadius={0.58}
+          spotlightSoftness={2.2}
+          spotlightOpacity={0.2}
+          mixBlendMode="normal"
+          edgesOnly={true}
+          edgeWidth={3.2}
+        />
+      </div>
+      <div className="relative z-10 space-y-5">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -337,7 +355,7 @@ export default function CandidatesPage() {
 
       {/* ── Pacing Alerts ──────────────────────────────────────────────────── */}
       {!alumniOnly && (
-        <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+        <div className="magic-bento-card rounded-xl border border-slate-700 bg-slate-900 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-sky-400 shrink-0" />
@@ -649,6 +667,7 @@ export default function CandidatesPage() {
       {alumniOnly && filtered.filter((c) => c.isAlumni).length === 0 && (
         <p className="py-12 text-center text-slate-500 text-sm">No alumni found.</p>
       )}
+      </div>
     </div>
   );
 }

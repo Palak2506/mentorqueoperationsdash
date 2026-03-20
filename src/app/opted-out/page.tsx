@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CANDIDATES, STAGES, STAGE_STYLES } from "@/lib/data";
 import { loadCustomCandidates, loadOptedOutCandidates, reinstateCandidate } from "@/lib/ops-store";
+import { GradientBlinds } from "@/components/ui/gradient-blinds";
 
 export default function OptedOutPage() {
   const [optedOutCandidates, setOptedOutCandidates] = useState<any[]>([]);
@@ -74,7 +75,24 @@ export default function OptedOutPage() {
   const hasOptedOut = optedOutList.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="relative">
+      <div className="absolute inset-0 z-0 opacity-20">
+        <GradientBlinds
+          gradientColors={["#1e3a5f", "#2563eb", "#3b82f6", "#60a5fa"]}
+          angle={45}
+          noise={0.08}
+          blindCount={16}
+          blindMinWidth={90}
+          mouseDampening={0.35}
+          spotlightRadius={0.58}
+          spotlightSoftness={2.2}
+          spotlightOpacity={0.2}
+          mixBlendMode="normal"
+          edgesOnly={true}
+          edgeWidth={3.2}
+        />
+      </div>
+      <div className="relative z-10 space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-50">Opted out</h1>
@@ -83,7 +101,7 @@ export default function OptedOutPage() {
         <Link href="/candidates" className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition">Back to candidates</Link>
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+      <div className="magic-bento-card rounded-xl border border-slate-700 bg-slate-900 p-4">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
           <p className="text-sm font-semibold text-amber-300">Opted out candidates ({optedOutList.length})</p>
@@ -154,6 +172,7 @@ export default function OptedOutPage() {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import "./globals.css";
 import ThemeToggle from "./theme-toggle";
 
@@ -23,8 +24,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <header className="mq-header sticky top-0 z-50 border-b">
           <div className="mx-auto flex max-w-screen-xl items-center gap-8 px-6 py-3">
             <span className="flex items-center gap-2 text-base font-bold tracking-tight text-white">
-              <span className="rounded-md bg-white/20 px-2 py-1 text-xs font-black text-white">MQ</span>
-              Ops Dashboard
+              <Image
+                src="/mentorque-logo.png"
+                alt="Mentorque logo"
+                width={28}
+                height={28}
+                priority
+                className="rounded-md bg-white/10 p-0.5"
+              />
+              Operations Dashboard
             </span>
             <nav className="flex items-center gap-1">
               {NAV.map((n) => (

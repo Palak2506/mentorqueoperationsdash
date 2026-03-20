@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CANDIDATES, STAGES, STAGE_STYLES, JOURNEY_ACTIONS } from "@/lib/data";
 import type { ActionStatus, Candidate, RiskLevel, StageId } from "@/lib/data";
+import { GradientBlinds } from "@/components/ui/gradient-blinds";
 
 import {
   addMentorName,
@@ -267,14 +268,6 @@ export default function HomePage() {
     candidates: active.filter((c) => c.currentStageId === stage.id),
   })), [active]);
 
-  const today = mounted
-    ? new Date().toLocaleDateString("en-GB", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      })
-    : "";
-
   function handleCreateCandidate() {
     if (!newCandidateName.trim()) {
       console.error("[CreateCandidate] Name is required");
@@ -377,16 +370,45 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-50">Operations Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{mounted ? today : null}</p>
-        </div>
+    <div className="relative">
+      <div className="absolute inset-0 z-0 opacity-20">
+        <GradientBlinds
+          gradientColors={["#1e3a5f", "#2563eb", "#3b82f6", "#60a5fa"]}
+          angle={45}
+          noise={0.08}
+          blindCount={16}
+          blindMinWidth={90}
+          mouseDampening={0.35}
+          spotlightRadius={0.58}
+          spotlightSoftness={2.2}
+          spotlightOpacity={0.2}
+          mixBlendMode="normal"
+          edgesOnly={true}
+          edgeWidth={3.2}
+        />
+      </div>
+      <div className="relative z-10 space-y-6">
+      <div className="flex items-center justify-end flex-wrap gap-3">
+
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => setShowCreateCandidate(true)} className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition">+ Create candidate</button>
-          <button onClick={() => setShowAllotMentor(true)} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 transition">Mentor allot</button>
-          <button onClick={() => setShowAddMentor(true)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition">Add mentor name</button>
+          <button
+            onClick={() => setShowCreateCandidate(true)}
+            className="glow-btn text-xs font-semibold text-white"
+          >
+            + Create candidate
+          </button>
+          <button
+            onClick={() => setShowAllotMentor(true)}
+            className="glow-btn glow-btn--violet text-xs font-semibold text-white"
+          >
+            Mentor allot
+          </button>
+          <button
+            onClick={() => setShowAddMentor(true)}
+            className="glow-btn glow-btn--emerald text-xs font-semibold text-white"
+          >
+            Add mentor name
+          </button>
           <Link href="/candidates" className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700 transition">All candidates →</Link>
         </div>
       </div>
@@ -400,17 +422,28 @@ export default function HomePage() {
               : [];
             if (criticalList.length === 0) return null;
             return (
-              <div className="rounded-xl border border-red-500/35 bg-red-500/5 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                  <p className="text-sm font-bold text-red-400">{criticalList.length} critical — act now</p>
+              <div className="magic-bento-card rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-b from-red-400 to-red-600 animate-pulse shrink-0" />
+                    <p className="text-sm font-bold text-red-300">
+                      {criticalList.length} critical
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-red-500/25 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-200">
+                    Act now
+                  </span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {criticalList.map((c) => {
                     const nextAction = liveDataMap.get(c.id)?.currentAction;
                     const age = stageAgeDays[c.id] ?? 0;
                     return (
-                      <Link key={c.id} href={`/candidates/${c.id}`} className="rounded-lg border border-red-500/25 bg-slate-950/80 px-3 py-3 hover:border-red-500/50 transition">
+                      <Link
+                        key={c.id}
+                        href={`/candidates/${c.id}`}
+                        className="magic-bento-card rounded-lg border border-red-500/25 bg-slate-950/80 px-3 py-3 transition hover:border-red-500/60"
+                      >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <p className="text-sm font-bold text-slate-50">{c.name}</p>
                           <div className="flex gap-1">
@@ -437,17 +470,28 @@ export default function HomePage() {
               : [];
             if (watchList.length === 0) return null;
             return (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
-                  <p className="text-sm font-semibold text-amber-400">{watchList.length} need monitoring</p>
+              <div className="magic-bento-card rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 animate-pulse shrink-0" />
+                    <p className="text-sm font-semibold text-amber-300">
+                      {watchList.length} monitoring
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                    Monitor
+                  </span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {watchList.map((c) => {
                     const nextAction = liveDataMap.get(c.id)?.currentAction;
                     const age = stageAgeDays[c.id] ?? 0;
                     return (
-                      <Link key={c.id} href={`/candidates/${c.id}`} className="rounded-lg border border-amber-500/20 bg-slate-950/80 px-3 py-3 hover:border-amber-500/40 transition">
+                      <Link
+                        key={c.id}
+                        href={`/candidates/${c.id}`}
+                        className="magic-bento-card rounded-lg border border-amber-500/20 bg-slate-950/80 px-3 py-3 transition hover:border-amber-500/60"
+                      >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <p className="text-sm font-semibold text-slate-50">{c.name}</p>
                           <div className="flex gap-1">
@@ -475,7 +519,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Pace tracker (standalone) ─────────────────────────────────────── */}
-      <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+      <section className="magic-bento-card rounded-xl border border-slate-700 bg-slate-900 p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-sky-400" />
@@ -531,7 +575,7 @@ export default function HomePage() {
           {kanbanStages.map(({ stage, candidates }) => {
             const s = STAGE_STYLES[stage.id];
             return (
-              <div key={stage.id} className={`flex-shrink-0 w-72 rounded-xl border overflow-hidden ${candidates.length > 0 ? "border-slate-800 bg-slate-900" : "border-slate-800/40 bg-slate-900/30"}`}>
+              <div key={stage.id} className={`magic-bento-card flex-shrink-0 w-72 rounded-xl border overflow-hidden ${candidates.length > 0 ? "border-slate-800 bg-slate-900" : "border-slate-800/40 bg-slate-900/30"}`}>
                 <div className={`px-3 py-2 border-b ${candidates.length > 0 ? `${s.bg} border-slate-800/60` : "border-slate-800/30"}`}>
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -694,12 +738,13 @@ export default function HomePage() {
           </div>
         </Modal>
       )}
+      </div>
     </div>
   );
 }
 
 const inputCls = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:border-sky-500 focus:outline-none";
-const primaryBtn = "rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition";
+const primaryBtn = "glow-btn text-xs font-semibold text-white";
 const secondaryBtn = "rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 transition";
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
@@ -718,7 +763,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
+    <div className="magic-bento-card rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-xs text-slate-500 mt-0.5">{label}</p>
     </div>
