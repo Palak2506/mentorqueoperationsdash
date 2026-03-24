@@ -19,7 +19,7 @@ interface DeletedCandidateRow {
   id: string;
 }
 
-function computePaceStatus(candidate: {
+interface CandidateRow {
   id: string;
   name: string;
   role: string;
@@ -30,7 +30,16 @@ function computePaceStatus(candidate: {
   optedOut?: boolean;
   enrolledDate: string;
   notes?: string | null;
-}, journeyItems: Array<{
+}
+
+interface JourneyItemRow {
+  actionId?: number | null;
+  status: string;
+  date?: string | null;
+  shortTitle?: string | null;
+}
+
+function computePaceStatus(candidate: CandidateRow, journeyItems: Array<{
   actionId?: number | null;
   status: string;
   date?: string | null;
@@ -62,7 +71,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const { id } = params;
 
   try {
-    const [candidate] = await sql`
+    const rows = await sql`
       SELECT
         "id",
         "name",
@@ -80,6 +89,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       WHERE "id" = ${id}
       LIMIT 1
     `;
+    const candidate = rows[0] as CandidateRow;
 
     if (!candidate) {
       return NextResponse.json(
@@ -107,7 +117,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       FROM "JourneyItem"
       WHERE "candidateId" = ${id}
       ORDER BY "orderIndex" ASC
-    `;
+    ` as JourneyItemRow[];
 
     const paceStatus = computePaceStatus(candidate, journeyItems);
     return NextResponse.json({ ...candidate, paceStatus, journeyItems });
@@ -145,7 +155,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const hasRiskLevel = riskLevel !== undefined;
     const hasCurrentStageId = currentStageId !== undefined;
 
-    const [updated] = await sql`
+    const updatedRows = await sql`
       UPDATE "Candidate"
       SET
         "mentor" = CASE WHEN ${hasMentor} THEN ${mentor} ELSE "mentor" END,
@@ -168,6 +178,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         "createdAt",
         "updatedAt"
     `;
+    const updated = updatedRows[0] as CandidateRow;
 
     if (!updated) {
       return NextResponse.json(
@@ -195,7 +206,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       FROM "JourneyItem"
       WHERE "candidateId" = ${id}
       ORDER BY "orderIndex" ASC
-    `;
+    ` as JourneyItemRow[];
 
     const paceStatus = computePaceStatus(updated, journeyItems);
     return NextResponse.json({ ...updated, paceStatus, journeyItems });
