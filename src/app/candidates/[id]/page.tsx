@@ -29,7 +29,6 @@ import {
 import type { ActionStatus, Candidate, RiskLevel, StageId } from "@/lib/data";
 import {
   type SessionItem,
-  loadJourney,
   saveJourney,
   getDeadlineStatus,
   formatDeadline,
@@ -40,8 +39,6 @@ import {
   addMentorName,
   computePacingAlertFromItems,
   loadMentorCatalog,
-  loadMentorOverrides,
-  loadCandidateNotes,
   saveCandidateNotes,
   saveMentorOverride,
   getStageAgeDays,
